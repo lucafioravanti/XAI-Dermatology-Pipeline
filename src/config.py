@@ -9,7 +9,10 @@ IMAGE_DIR = os.path.join(DATA_DIR, 'HAM10000_all_images')
 # Model parameters
 IMAGE_SIZE = 224
 BATCH_SIZE = 32
-EPOCHS = 20
+EPOCHS_HEAD = 5
+EPOCHS_FINETUNE = 15
+LEARNING_RATE_HEAD = 1e-3
+LEARNING_RATE_FINETUNE = 1e-5
 NUM_CLASSES = 7
 
 # Lesion dictionary
