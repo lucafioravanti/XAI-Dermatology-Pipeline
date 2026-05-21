@@ -42,6 +42,7 @@ def build_vit_model():
         tf.keras.layers.Dense(256, activation=tf.keras.activations.gelu),
         tf.keras.layers.Dropout(0.5),
         tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Dropout(0.5),
         tf.keras.layers.Dense(config.NUM_CLASSES, activation='softmax')
     ], name='vision_transformer')
 

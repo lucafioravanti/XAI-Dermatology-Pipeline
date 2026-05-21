@@ -28,7 +28,7 @@ As part of the academic project, we benchmarked multiple models on this classifi
 This repository highlights my specific contributions to the group project, focusing on data engineering and the implementation of the Vision Transformer. The core of my work includes:
 
 1. **Exploratory Data Analysis (EDA) & Preprocessing**: Analyzing the clinical metadata and implementing strategies to handle missing values and data formatting (`notebooks/eda/`).
-2. **Class Imbalance Management (SMOTE)**: Engineering a pipeline module to dynamically apply Synthetic Minority Over-sampling Technique (SMOTE) to balance the diagnostic classes prior to model training.
+2. **Class Imbalance Management (Oversampling)**: Engineering a pipeline module to dynamically apply Random Oversampling on image paths to balance the diagnostic classes prior to model training, allowing for efficient lazy loading without Out-Of-Memory errors.
 3. **ViT Engineering & Fine-Tuning**: Implementing, fine-tuning, and evaluating the Vision Transformer (ViT) architecture using `vit-keras` and TensorFlow, complete with learning rate scheduling and early stopping.
 4. **Pipeline Refactoring**: Transforming a monolithic academic script into a modular, production-ready ETL and Training pipeline (`src/`).
 
@@ -38,7 +38,7 @@ This repository highlights my specific contributions to the group project, focus
 To improve the robustness and generalizability of the Vision Transformer model, future steps include:
 - **Enhanced Data Augmentation**: Applying heavier geometric and color transformations to prevent overfitting.
 - **K-Fold Cross-Validation**: Implementing robust validation strategies to better evaluate model performance on the imbalanced clinical data.
-- **Advanced Feature SMOTE**: Refining the oversampling strategy on latent feature spaces rather than raw pixel/tabular combinations.
+- **Advanced Feature SMOTE**: Upgrading the current Random Oversampling strategy to apply SMOTE on the latent feature space of the Vision Transformer, to synthesize genuinely new examples rather than duplicating existing ones.
 
 ## How to Run the Pipeline
 

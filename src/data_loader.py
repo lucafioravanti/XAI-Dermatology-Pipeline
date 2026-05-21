@@ -51,7 +51,6 @@ def load_and_preprocess_data(apply_smote=True):
     Loads metadata, creates image paths, splits data, optionally applies oversampling,
     and returns tf.data.Dataset objects for training, validation, and testing.
     """
-    # 1. Load Metadata
     print("Loading metadata...")
     if not os.path.exists(config.METADATA_PATH):
          raise FileNotFoundError(f"Metadata file not found at {config.METADATA_PATH}. Please make sure data is placed correctly.")
@@ -59,16 +58,12 @@ def load_and_preprocess_data(apply_smote=True):
     data = pd.read_csv(config.METADATA_PATH)
     data['image_path'] = os.path.join(config.IMAGE_DIR, '') + data['image_id'] + '.jpg'
 
-    # Map labels to numeric indices
     data['cell_type'] = data['dx'].map(config.LESION_TYPE_DICT)
     data['cell_type_idx'] = pd.Categorical(data['cell_type']).codes
 
-    # Fill missing ages
     data['age'] = data['age'].fillna(data['age'].mean())
 
-    # 2. Initial Data Split (Train/Val/Test)
     print("Splitting dataset...")
-    # Stratify by cell_type_idx to ensure distribution is maintained in splits before SMOTE
     train_data, test_data = train_test_split(data, test_size=0.2, random_state=42, stratify=data['cell_type_idx'])
     train_data, val_data = train_test_split(train_data, test_size=0.2, random_state=42, stratify=train_data['cell_type_idx'])
 
@@ -77,8 +72,6 @@ def load_and_preprocess_data(apply_smote=True):
         print("Applying RandomOverSampler to balance training classes...")
         # Using RandomOverSampler for image paths is safer for raw images than SMOTE interpolating pixels.
         ros = RandomOverSampler(random_state=42)
-
-        # Reshape for the sampler
         X_train_paths = train_data['image_path'].values.reshape(-1, 1)
         y_train_labels = train_data['cell_type_idx'].values
 
