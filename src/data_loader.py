@@ -6,39 +6,50 @@ from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 import src.config as config
 
-def process_path(file_path, label):
-    """
-    TensorFlow mapping function to load, resize, and normalize an image from a path.
-    """
-    # Load the raw data from the file as a string
-    img = tf.io.read_file(file_path)
-    # Decode the image (works for JPG, PNG, etc.)
-    img = tf.image.decode_jpeg(img, channels=3)
-    # Resize the image
-    img = tf.image.resize(img, [config.IMAGE_SIZE, config.IMAGE_SIZE])
-    # Normalize to [0, 1]
-    img = img / 255.0
-    return img, label
+def load_image(image_path, label):
+    """Loads, resizes, and normalizes an image using TensorFlow operations."""
+    image = tf.io.read_file(image_path)
+    image = tf.image.decode_jpeg(image, channels=3)
+    image = tf.image.resize(image, [config.IMAGE_SIZE, config.IMAGE_SIZE])
+    image = tf.cast(image, tf.float32) / 255.0
+    return image, label
 
-def create_tf_dataset(paths, labels, is_training=False):
-    """
-    Creates an optimized tf.data.Dataset pipeline.
-    """
-    dataset = tf.data.Dataset.from_tensor_slices((paths, labels))
+def augment_image(image, label):
+    """Applies basic data augmentation suitable for medical images."""
+    image = tf.image.random_flip_left_right(image)
+    image = tf.image.random_flip_up_down(image)
+    # Note: Medical images can be safely rotated. tf.image.rot90 is simple and effective.
+    # For more complex rotations, we could use tf.keras.layers.RandomRotation,
+    # but applying it in tf.data pipeline with raw tf ops is sometimes faster.
+    k = tf.random.uniform(shape=[], minval=0, maxval=4, dtype=tf.int32)
+    image = tf.image.rot90(image, k)
+    return image, label
 
+def create_tf_dataset(image_paths, labels, is_training=False):
+    """Creates an efficient tf.data.Dataset from file paths and labels."""
+    dataset = tf.data.Dataset.from_tensor_slices((image_paths, labels))
+
+    # Shuffle only for training
     if is_training:
-        dataset = dataset.shuffle(buffer_size=len(paths))
+        dataset = dataset.shuffle(buffer_size=len(image_paths))
 
-    dataset = dataset.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
+    # Map the image loading function
+    dataset = dataset.map(load_image, num_parallel_calls=tf.data.AUTOTUNE)
+
+    # Apply data augmentation only for training
+    if is_training:
+        dataset = dataset.map(augment_image, num_parallel_calls=tf.data.AUTOTUNE)
+
+    # Batch and prefetch
     dataset = dataset.batch(config.BATCH_SIZE)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     return dataset
 
-def load_and_preprocess_data(apply_oversampling=True):
+def load_and_preprocess_data(apply_smote=True):
     """
-    Loads metadata, creates image paths, splits data, balances classes,
-    and returns optimized tf.data.Dataset objects.
+    Loads metadata, creates image paths, splits data, optionally applies oversampling,
+    and returns tf.data.Dataset objects for training, validation, and testing.
     """
     print("Loading metadata...")
     if not os.path.exists(config.METADATA_PATH):
@@ -56,8 +67,10 @@ def load_and_preprocess_data(apply_oversampling=True):
     train_data, test_data = train_test_split(data, test_size=0.2, random_state=42, stratify=data['cell_type_idx'])
     train_data, val_data = train_test_split(train_data, test_size=0.2, random_state=42, stratify=train_data['cell_type_idx'])
 
-    if apply_oversampling:
-        print("Applying Random Oversampling to balance training classes...")
+    # 3. Apply Oversampling (RandomOverSampler) to Training Data
+    if apply_smote:
+        print("Applying RandomOverSampler to balance training classes...")
+        # Using RandomOverSampler for image paths is safer for raw images than SMOTE interpolating pixels.
         ros = RandomOverSampler(random_state=42)
         X_train_paths = train_data['image_path'].values.reshape(-1, 1)
         y_train_labels = train_data['cell_type_idx'].values
@@ -76,13 +89,12 @@ def load_and_preprocess_data(apply_oversampling=True):
     test_paths = test_data['image_path'].values
     test_labels = test_data['cell_type_idx'].values
 
-    print(f"Training samples: {len(train_paths)}")
-    print(f"Validation samples: {len(val_paths)}")
-    print(f"Test samples: {len(test_paths)}")
+    # 4. Create tf.data.Dataset objects (Lazy Loading & Augmentation)
+    print("Creating tf.data.Datasets...")
+    print(f"Training samples (after oversampling): {len(train_paths)}")
 
-    print("Creating tf.data pipelines...")
-    train_ds = create_tf_dataset(train_paths, train_labels, is_training=True)
-    val_ds = create_tf_dataset(val_paths, val_labels, is_training=False)
-    test_ds = create_tf_dataset(test_paths, test_labels, is_training=False)
+    train_dataset = create_tf_dataset(train_paths, train_labels, is_training=True)
+    val_dataset = create_tf_dataset(val_paths, val_labels, is_training=False)
+    test_dataset = create_tf_dataset(test_paths, test_labels, is_training=False)
 
-    return train_ds, val_ds, test_ds, test_labels # Return raw labels for confusion matrix
+    return train_dataset, val_dataset, test_dataset
