@@ -1,0 +1,9 @@
+pandas
+numpy
+Pillow
+scikit-learn
+imbalanced-learn
+tensorflow
+tensorflow-addons
+vit-keras
+matplotlib
