@@ -5,9 +5,10 @@ import src.config as config
 
 def step_decay(epoch):
     """Learning rate decay schedule."""
-    initial_lrate = 0.001
-    drop = 0.1
-    epochs_drop = 10.0
+    # Start from a much lower LR to match the new compilation
+    initial_lrate = 1e-4
+    drop = 0.5 # Gentler drop
+    epochs_drop = 5.0 # Drop more frequently
     lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
     return lrate
 
@@ -15,7 +16,7 @@ def get_callbacks(model_save_path='vit_model.h5'):
     """Returns a list of callbacks for training."""
     early_stopping = EarlyStopping(
         monitor='val_loss',
-        patience=3,
+        patience=5, # Slightly higher patience since learning rate is lower
         restore_best_weights=True
     )
 
@@ -28,21 +29,17 @@ def get_callbacks(model_save_path='vit_model.h5'):
 
     return [early_stopping, model_checkpoint, lr_scheduler]
 
-def train_model(model, train_data, val_data):
+def train_model(model, train_ds, val_ds):
     """
-    Executes the training loop.
+    Executes the training loop using tf.data.Dataset.
     """
-    train_images, train_labels = train_data
-    val_images, val_labels = val_data
-
     callbacks = get_callbacks()
 
     print("Starting training...")
     history = model.fit(
-        train_images, train_labels,
-        validation_data=(val_images, val_labels),
+        train_ds,
+        validation_data=val_ds,
         epochs=config.EPOCHS,
-        batch_size=config.BATCH_SIZE,
         callbacks=callbacks
     )
 

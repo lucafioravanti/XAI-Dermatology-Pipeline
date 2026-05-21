@@ -9,7 +9,7 @@ def main():
 
     # 1. Load and preprocess data
     try:
-        train_data, val_data, test_data = load_and_preprocess_data(apply_smote=True)
+        train_ds, val_ds, test_ds, test_labels = load_and_preprocess_data(apply_oversampling=True)
     except FileNotFoundError as e:
         print(f"Dataset missing: {e}")
         print("Please ensure HAM10000_metadata.csv and HAM10000_all_images/ are in the data/ directory.")
@@ -20,11 +20,11 @@ def main():
     model.summary()
 
     # 3. Train model
-    history = train_model(model, train_data, val_data)
+    history = train_model(model, train_ds, val_ds)
 
     # 4. Evaluate model
     plot_training_history(history)
-    evaluate_model(model, test_data)
+    evaluate_model(model, test_ds, test_labels)
 
 if __name__ == "__main__":
     main()

@@ -25,17 +25,16 @@ def plot_training_history(history):
     plt.savefig('training_history.png')
     plt.show()
 
-def evaluate_model(model, test_data):
+def evaluate_model(model, test_ds, test_labels):
     """Evaluates the model on test data and prints metrics."""
-    test_images, test_labels = test_data
 
     print("\nEvaluating on Test Data...")
-    test_loss, test_accuracy = model.evaluate(test_images, test_labels)
+    test_loss, test_accuracy = model.evaluate(test_ds)
     print(f'Test Loss: {test_loss:.4f}')
     print(f'Test Accuracy: {test_accuracy:.4f}')
 
     print("\nGenerating Predictions...")
-    predictions = model.predict(test_images)
+    predictions = model.predict(test_ds)
     predicted_labels = np.argmax(predictions, axis=1)
 
     print("\nConfusion Matrix:")
@@ -47,5 +46,5 @@ def evaluate_model(model, test_data):
 
     # Visualize some predictions
     print("\nSample Predictions:")
-    for i in range(5):
+    for i in range(min(5, len(test_labels))):
         print(f"True Label: {test_labels[i]}, Predicted Label: {predicted_labels[i]}")
