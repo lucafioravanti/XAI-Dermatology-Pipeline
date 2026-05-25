@@ -1,19 +1,34 @@
+import os
+import sys
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import tensorflow as tf
 import src.config as config
 
 # In Python 3.12, vit-keras might not be fully compatible due to tensorflow-addons.
-# If vit_keras fails, we'll gracefully mock it or use an alternative standard model for testing.
-try:
-    from vit_keras import vit
-except ImportError:
-    # Creating a dummy vit model for code validation if vit_keras is unavailable
-    class DummyViT:
-        def vit_b32(self, image_size, activation, pretrained, include_top, pretrained_top, classes):
-            inputs = tf.keras.Input(shape=(image_size, image_size, 3))
-            x = tf.keras.layers.GlobalAveragePooling2D()(inputs)
-            # Match the expected output shape
-            return tf.keras.Model(inputs, x)
-    vit = DummyViT()
+# We mock tensorflow-addons to map to built-in keras functionalities.
+class MockTFALayers:
+    GELU = tf.keras.layers.Activation('gelu')
+    @staticmethod
+    def GELU(*args, **kwargs):
+        return tf.keras.layers.Activation('gelu')
+
+    @staticmethod
+    def AdamW(*args, **kwargs):
+        # Fallback to standard Adam as AdamW may not be readily available in legacy Keras
+        return tf.keras.optimizers.Adam(*args, **kwargs)
+
+class MockTFA:
+    pass
+
+mock_tfa = MockTFA()
+mock_tfa.layers = MockTFALayers()
+mock_tfa.optimizers = MockTFALayers()
+
+sys.modules['tensorflow_addons'] = mock_tfa
+sys.modules['tensorflow_addons.layers'] = mock_tfa.layers
+sys.modules['tensorflow_addons.optimizers'] = mock_tfa.optimizers
+
+from vit_keras import vit
 
 def build_vit_model():
     """

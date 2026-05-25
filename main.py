@@ -1,4 +1,5 @@
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 from src.data_loader import load_and_preprocess_data
 from src.model import build_vit_model
 from src.train import train_model
